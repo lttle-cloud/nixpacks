@@ -9,7 +9,45 @@ const FIRST_COLUMN_MIN_WIDTH: usize = 10;
 const MIN_BOX_WIDTH: usize = 20;
 const MAX_BOX_WIDTH: usize = 80;
 
+#[derive(Debug, Clone)]
+pub struct PhaseInfoDesc {
+    pub phases: Vec<(String, Vec<String>)>,
+    pub start: String,
+}
+
 impl BuildPlan {
+    pub fn get_phase_info_desc(&self) -> Result<PhaseInfoDesc> {
+        let phase_contents = self
+            .get_sorted_phases()?
+            .iter()
+            .filter(|phase| phase.uses_nix() || phase.apt_pkgs.is_some() || phase.cmds.is_some())
+            .map(|phase| {
+                (
+                    phase.get_name(),
+                    self.get_phase_content(phase)
+                        .unwrap()
+                        .split('\n')
+                        .map(|s| s.to_string())
+                        .collect::<Vec<String>>(),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let start_contents = self
+            .start_phase
+            .clone()
+            .unwrap_or_default()
+            .cmd
+            .unwrap_or_default();
+
+        let info = PhaseInfoDesc {
+            phases: phase_contents,
+            start: start_contents,
+        };
+
+        Ok(info)
+    }
+
     /// The pretty-printed build plan, emitted by `nixpacks build`.
     pub fn get_build_string(&self) -> Result<String> {
         let title_str = format!(" Nixpacks v{NIX_PACKS_VERSION} ");
