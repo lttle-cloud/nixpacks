@@ -13,14 +13,13 @@ use crate::nixpacks::{
 use anyhow::{bail, Context, Ok, Result};
 use std::{
     fs::{self, remove_dir_all, File},
-    process::Command,
+    process::{Command, Stdio},
 };
 use tempdir::TempDir;
 use uuid::Uuid;
 
 /// Builds Docker images from options, logging to stdout if the build is successful.
 pub struct DockerImageBuilder {
-    logger: Logger,
     options: DockerBuilderOptions,
 }
 
@@ -106,10 +105,6 @@ impl ImageBuilder for DockerImageBuilder {
                 bail!("Docker build failed")
             }
 
-            self.logger.log_section("Successfully Built!");
-            println!("\nRun:");
-            println!("  docker run -it {name}");
-
             if self.options.incremental_cache_image.is_some() {
                 incremental_cache.create_image(
                     &incremental_cache_dirs,
@@ -130,8 +125,8 @@ impl ImageBuilder for DockerImageBuilder {
 }
 
 impl DockerImageBuilder {
-    pub fn new(logger: Logger, options: DockerBuilderOptions) -> DockerImageBuilder {
-        DockerImageBuilder { logger, options }
+    pub fn new(_logger: Logger, options: DockerBuilderOptions) -> DockerImageBuilder {
+        DockerImageBuilder { options }
     }
 
     /// Generates the Docker command and arguments for building the project.
@@ -167,6 +162,8 @@ impl DockerImageBuilder {
         }
 
         if self.options.quiet {
+            docker_build_cmd.stdout(Stdio::null());
+            docker_build_cmd.stderr(Stdio::null());
             docker_build_cmd.arg("--quiet");
         }
 
