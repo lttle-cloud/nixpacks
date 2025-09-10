@@ -32,7 +32,7 @@ const BUN_NIXPKGS_ARCHIVE: &str = "5a0711127cd8b916c3d3128f473388c8c79df0da";
 // We need to use a specific commit hash for Node versions <16 since it is EOL in the latest Nix packages
 const NODE_LT_16_ARCHIVE: &str = "bf744fe90419885eefced41b3e5ae442d732712d";
 
-const DEFAULT_NODE_VERSION: u32 = 18;
+const DEFAULT_NODE_VERSION: u32 = 22;
 const AVAILABLE_NODE_VERSIONS: &[u32] = &[14, 16, 18, 20, 22, 23];
 
 const YARN_CACHE_DIR: &str = "/usr/local/share/.cache/yarn/v6";
