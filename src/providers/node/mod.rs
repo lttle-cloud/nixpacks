@@ -456,14 +456,14 @@ impl NodeProvider {
         let mut install_cmd = "npm i".to_string();
         let package_manager = NodeProvider::get_package_manager(app);
         if package_manager == "pnpm" {
-            install_cmd = "pnpm i --frozen-lockfile".to_string();
+            install_cmd = "pnpm i --frozen-lockfile --prod=false".to_string();
         } else if package_manager == "yarn" {
             // TODO: When using Corepack and modern Yarn, we may not have a .yarnrc.yml - need to
             //       read the Yarn version from stdout after enabling Corepack.
             if app.includes_file(".yarnrc.yml") {
-                install_cmd = "yarn install --check-cache".to_string();
+                install_cmd = "yarn install --check-cache --production=false".to_string();
             } else {
-                install_cmd = "yarn install --frozen-lockfile".to_string();
+                install_cmd = "yarn install --frozen-lockfile --production=false".to_string();
             }
         } else if app.includes_file("package-lock.json") {
             install_cmd = "npm ci".to_string();
