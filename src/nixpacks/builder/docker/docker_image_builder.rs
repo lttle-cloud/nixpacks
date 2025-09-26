@@ -115,9 +115,6 @@ impl ImageBuilder for DockerImageBuilder {
             if output.is_temp {
                 remove_dir_all(output.root)?;
             }
-        } else {
-            println!("\nSaved output to:");
-            println!("  {}", output.root.to_str().unwrap());
         }
 
         Ok(())
