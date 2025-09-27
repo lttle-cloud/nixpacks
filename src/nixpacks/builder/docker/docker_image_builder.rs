@@ -226,11 +226,7 @@ impl DockerImageBuilder {
 
     /// Copies project files to temporary output dir, if that option was used.
     fn write_app(&self, app_src: &str, output: &OutputDir) -> Result<()> {
-        if output.is_temp {
-            files::recursive_copy_dir(app_src, &output.root)
-        } else {
-            Ok(())
-        }
+        files::recursive_copy_dir(app_src, &output.root)
     }
 
     /// Writes the generated Dockerfile to the output dir.
