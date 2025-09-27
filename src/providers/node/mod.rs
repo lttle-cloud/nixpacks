@@ -453,7 +453,7 @@ impl NodeProvider {
             return None;
         }
 
-        let mut install_cmd = "npm i".to_string();
+        let mut install_cmd = "npm i --include=dev".to_string();
         let package_manager = NodeProvider::get_package_manager(app);
         if package_manager == "pnpm" {
             install_cmd = "pnpm i --frozen-lockfile --prod=false".to_string();
@@ -466,7 +466,7 @@ impl NodeProvider {
                 install_cmd = "yarn install --frozen-lockfile --production=false".to_string();
             }
         } else if app.includes_file("package-lock.json") {
-            install_cmd = "npm ci --include=dev".to_string();
+            install_cmd = "npm i --include=dev --no-package-lock".to_string();
         } else if app.includes_file("bun.lockb") || app.includes_file("bun.lock") {
             install_cmd = "bun i --no-save".to_string();
         }
