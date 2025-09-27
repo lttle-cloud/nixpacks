@@ -466,7 +466,7 @@ impl NodeProvider {
                 install_cmd = "yarn install --frozen-lockfile --production=false".to_string();
             }
         } else if app.includes_file("package-lock.json") {
-            install_cmd = "npm ci".to_string();
+            install_cmd = "npm ci --include=dev".to_string();
         } else if app.includes_file("bun.lockb") || app.includes_file("bun.lock") {
             install_cmd = "bun i --no-save".to_string();
         }
