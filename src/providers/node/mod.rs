@@ -465,10 +465,10 @@ impl NodeProvider {
             } else {
                 install_cmd = "yarn install --frozen-lockfile --production=false".to_string();
             }
+        } else if package_manager == "bun" {        
+            install_cmd = "bun i --no-save".to_string();
         } else if app.includes_file("package-lock.json") {
             install_cmd = "npm i --include=dev --no-package-lock".to_string();
-        } else if app.includes_file("bun.lockb") || app.includes_file("bun.lock") {
-            install_cmd = "bun i --no-save".to_string();
         }
 
         Some(install_cmd)
