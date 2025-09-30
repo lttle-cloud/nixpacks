@@ -468,7 +468,8 @@ impl NodeProvider {
         } else if package_manager == "bun" {        
             install_cmd = "bun i --no-save".to_string();
         } else if app.includes_file("package-lock.json") {
-            install_cmd = "npm i --include=dev --no-package-lock".to_string();
+            // a lock-file might include some deps arch dependent. so we need to rebuild them.
+            install_cmd = "npm ci --ignore-scripts --no-audit --no-fund && npm rebuild --no-audit --no-fund".to_string();
         }
 
         Some(install_cmd)
