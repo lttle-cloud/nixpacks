@@ -133,26 +133,12 @@ pub async fn create_docker_image(
 
     let phase_count = plan.phases.clone().map_or(0, |phases| phases.len());
     if phase_count > 0 {
-        println!("{}", plan.get_build_string()?);
-
         let start = plan.start_phase.clone().unwrap_or_default();
         if start.cmd.is_none() && !build_options.no_error_without_start {
             bail!("No start command could be found")
         }
     } else {
-        println!("\nNixpacks was unable to generate a build plan for this app.\nPlease check the documentation for supported languages: https://nixpacks.com");
-        println!("\nThe contents of the app directory are:\n");
-
-        for file in &app.paths {
-            let path = app.strip_source_path(file.as_path())?;
-            println!(
-                "  {}{}",
-                path.display(),
-                if file.is_dir() { "/" } else { "" }
-            );
-        }
-
-        std::process::exit(1);
+        bail!("Failed to generate a build plan. Check the documentation for auto-build supported targets: https://docs.lttle.cloud/build/auto-build#supported-targets")
     }
 
     if build_options.out_dir.is_none() {
@@ -170,7 +156,7 @@ fn ensure_docker_exists() -> Result<()> {
     let mut docker_build_cmd = Command::new("docker");
 
     if docker_build_cmd.output().is_err() {
-        bail!("Please install Docker to build the app https://docs.docker.com/engine/install/");
+        bail!("Docker is required to build the app. Check the prerequisites here: https://docs.lttle.cloud/build/auto-build#requirements");
     }
 
     Ok(())

@@ -32,7 +32,7 @@ const BUN_NIXPKGS_ARCHIVE: &str = "5a0711127cd8b916c3d3128f473388c8c79df0da";
 // We need to use a specific commit hash for Node versions <16 since it is EOL in the latest Nix packages
 const NODE_LT_16_ARCHIVE: &str = "bf744fe90419885eefced41b3e5ae442d732712d";
 
-const DEFAULT_NODE_VERSION: u32 = 18;
+const DEFAULT_NODE_VERSION: u32 = 22;
 const AVAILABLE_NODE_VERSIONS: &[u32] = &[14, 16, 18, 20, 22, 23];
 
 const YARN_CACHE_DIR: &str = "/usr/local/share/.cache/yarn/v6";
@@ -453,22 +453,23 @@ impl NodeProvider {
             return None;
         }
 
-        let mut install_cmd = "npm i".to_string();
+        let mut install_cmd = "npm i --include=dev".to_string();
         let package_manager = NodeProvider::get_package_manager(app);
         if package_manager == "pnpm" {
-            install_cmd = "pnpm i --frozen-lockfile".to_string();
+            install_cmd = "pnpm i --frozen-lockfile --prod=false".to_string();
         } else if package_manager == "yarn" {
             // TODO: When using Corepack and modern Yarn, we may not have a .yarnrc.yml - need to
             //       read the Yarn version from stdout after enabling Corepack.
             if app.includes_file(".yarnrc.yml") {
-                install_cmd = "yarn install --check-cache".to_string();
+                install_cmd = "yarn install --check-cache --production=false".to_string();
             } else {
-                install_cmd = "yarn install --frozen-lockfile".to_string();
+                install_cmd = "yarn install --frozen-lockfile --production=false".to_string();
             }
-        } else if app.includes_file("package-lock.json") {
-            install_cmd = "npm ci".to_string();
-        } else if app.includes_file("bun.lockb") || app.includes_file("bun.lock") {
+        } else if package_manager == "bun" {        
             install_cmd = "bun i --no-save".to_string();
+        } else if app.includes_file("package-lock.json") {
+            // a lock-file might include some deps arch dependent. so we need to rebuild them.
+            install_cmd = "npm ci --ignore-scripts --no-audit --no-fund && npm rebuild --no-audit --no-fund".to_string();
         }
 
         Some(install_cmd)

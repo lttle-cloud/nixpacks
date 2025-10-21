@@ -120,15 +120,21 @@ impl Provider for PythonProvider {
 
     fn metadata(&self, app: &App, env: &Environment) -> Result<ProviderMetadata> {
         let is_django = PythonProvider::is_django(app, env)?;
+        let is_flask = PythonProvider::is_flask(app)?;
+        let is_fasthtml = PythonProvider::is_fasthtml(app)?;
         let is_using_postgres = PythonProvider::is_using_postgres(app, env)?;
         let is_poetry = app.includes_file("poetry.lock");
         let is_pdm = app.includes_file("pdm.lock");
+        let is_uv = app.includes_file("uv.lock");
 
         Ok(ProviderMetadata::from(vec![
             (is_django, "django"),
+            (is_flask, "flask"),
+            (is_fasthtml, "fasthtml"),
             (is_using_postgres, "postgres"),
             (is_poetry, "poetry"),
             (is_pdm, "pdm"),
+            (is_uv, "uv"),
         ]))
     }
 
@@ -383,20 +389,40 @@ impl PythonProvider {
     }
 
     fn start(&self, app: &App, env: &Environment) -> Result<Option<StartPhase>> {
+        // Priority 1: Django with gunicorn and migrations
         if PythonProvider::is_django(app, env)? {
             let app_name = PythonProvider::get_django_app_name(app, env)?;
-
             return Ok(Some(StartPhase::new(format!(
-                "python manage.py migrate && gunicorn {app_name}"
+                "python manage.py migrate && gunicorn {app_name}.wsgi:application --bind 0.0.0.0:${{PORT:-8000}}"
             ))));
         }
 
-        // the python package is extracted from pyproject.toml, but this can often not be the desired entrypoint
-        // for this reason we prefer main.py to the module heuristic used in the pyproject.toml logic
+        // Priority 2: FastHTML with uvicorn (only checks main.py specifically)
+        if PythonProvider::is_fasthtml(app)?
+            && app.includes_file("main.py")
+            && PythonProvider::uses_dep(app, "uvicorn")?
+        {
+            return Ok(Some(StartPhase::new(
+                "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}".to_string()
+            )));
+        }
+
+        // Priority 3: Flask with gunicorn (only checks main.py specifically)
+        if PythonProvider::is_flask(app)?
+            && app.includes_file("main.py")
+            && PythonProvider::uses_dep(app, "gunicorn")?
+        {
+            return Ok(Some(StartPhase::new(
+                "gunicorn --bind 0.0.0.0:${PORT:-8000} main:app".to_string()
+            )));
+        }
+
+        // Priority 4: main.py specifically (preserves original behavior)
         if app.includes_file("main.py") {
             return Ok(Some(StartPhase::new("python main.py".to_string())));
         }
 
+        // Priority 5: PyProject entry points (original priority preserved)
         if app.includes_file("pyproject.toml") {
             if let OkResult(meta) = PythonProvider::parse_pyproject(app) {
                 if let Some(entry_point) = meta.entry_point {
@@ -408,6 +434,14 @@ impl PythonProvider {
             }
         }
 
+        // Priority 6: Other common entry files (new fallback)
+        let other_files = ["app.py", "bot.py", "hello.py", "server.py"];
+        for file in other_files {
+            if app.includes_file(file) {
+                return Ok(Some(StartPhase::new(format!("python {file}"))));
+            }
+        }
+
         Ok(None)
     }
 
@@ -416,6 +450,14 @@ impl PythonProvider {
         let imports_django = PythonProvider::uses_dep(app, "django")?;
 
         Ok(has_manage && imports_django)
+    }
+
+    fn is_fasthtml(app: &App) -> Result<bool> {
+        PythonProvider::uses_dep(app, "python-fasthtml")
+    }
+
+    fn is_flask(app: &App) -> Result<bool> {
+        PythonProvider::uses_dep(app, "flask")
     }
 
     fn is_using_postgres(app: &App, _env: &Environment) -> Result<bool> {
